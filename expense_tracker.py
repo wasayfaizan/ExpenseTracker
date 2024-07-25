@@ -123,4 +123,11 @@ def main():
             print("Exiting Expense Tracker. Goodbye!")
             break
         else:
-   
+            print("Invalid choice. Please try again.")
+
+        # Run pending scheduled tasks
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
