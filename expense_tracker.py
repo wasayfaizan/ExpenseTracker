@@ -1,9 +1,6 @@
 import csv
 import pandas as pd
 from datetime import datetime, timedelta
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import schedule
 import time
 
@@ -15,32 +12,9 @@ def initialize_csv():
     try:
         with open(CSV_FILE, mode='x', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Date', 'Category', 'Description', 'Amount', 'Reminder', 'Email'])
+            writer.writerow(['Date', 'Category', 'Description', 'Amount', 'Reminder'])
     except FileExistsError:
         pass
-
-def send_email(to_email, subject, body):
-    """Send an email notification."""
-    from_email = "your_email@example.com"
-    password = "your_email_password"
-
-    msg = MIMEMultipart()
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg['Subject'] = subject
-
-    msg.attach(MIMEText(body, 'plain'))
-
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, password)
-        text = msg.as_string()
-        server.sendmail(from_email, to_email, text)
-        server.quit()
-        print("Email sent successfully.")
-    except Exception as e:
-        print(f"Failed to send email. Error: {e}")
 
 def log_expense():
     """Log a new expense."""
@@ -49,17 +23,10 @@ def log_expense():
     description = input("Enter the description: ").strip()
     amount = float(input("Enter the amount: ").strip())
     reminder = input("Does this expense need a reminder? (yes/no): ").strip().lower()
-    email = ""
     
-    if reminder == 'yes':
-        email = input("Enter your email address for the reminder: ").strip()
-        reminder_date = datetime.strptime(date, '%Y-%m-%d') - timedelta(days=10)
-        send_email(email, "Expense Reminder Set", f"You will be reminded about the expense '{description}' on {reminder_date.date()}.")
-        print(f"Reminder set for {reminder_date.date()}.")
-
     with open(CSV_FILE, mode='a', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow([date, category, description, amount, reminder, email])
+        writer.writerow([date, category, description, amount, reminder])
     
     print("Expense logged successfully.")
 
@@ -71,13 +38,13 @@ def read_expenses():
             reader = csv.reader(file)
             headers = next(reader)
             for row in reader:
-                if len(row) == 6:  # Ensure the row has the correct number of columns
+                if len(row) == 5:  # Ensure the row has the correct number of columns
                     valid_rows.append(row)
                 else:
                     print(f"Skipping malformed row: {row}")
     except FileNotFoundError:
         print("No expenses logged yet.")
-    return pd.DataFrame(valid_rows, columns=['Date', 'Category', 'Description', 'Amount', 'Reminder', 'Email'])
+    return pd.DataFrame(valid_rows, columns=['Date', 'Category', 'Description', 'Amount', 'Reminder'])
 
 def view_expenses():
     """View all logged expenses."""
@@ -115,7 +82,7 @@ def delete_expense():
         print("No expenses logged yet.")
 
 def check_reminders():
-    """Check for reminders and send email if needed."""
+    """Check for reminders and notify if needed."""
     df = read_expenses()
     if not df.empty:
         today = datetime.now().date()
@@ -124,7 +91,7 @@ def check_reminders():
                 expense_date = datetime.strptime(row['Date'], '%Y-%m-%d').date()
                 reminder_date = expense_date - timedelta(days=10)
                 if reminder_date == today:
-                    send_email(row['Email'], "Expense Reminder", f"Reminder: You have an upcoming expense on {expense_date} for {row['Description']} amounting to {row['Amount']}.")
+                    print(f"Reminder: You have an upcoming expense on {expense_date} for {row['Description']} amounting to {row['Amount']}.")
     else:
         print("No expenses to check for reminders.")
 
@@ -156,11 +123,4 @@ def main():
             print("Exiting Expense Tracker. Goodbye!")
             break
         else:
-            print("Invalid choice. Please try again.")
-
-        # Run pending scheduled tasks
-        schedule.run_pending()
-        time.sleep(1)
-
-if __name__ == "__main__":
-    main()
+   
